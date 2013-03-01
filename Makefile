@@ -435,6 +435,12 @@ shp/vi/states.shp: shp/us/states.shp
 shp/%/counties.shp: shp/us/counties.shp
 	mkdir -p $(dir $@) && rm -f $@ && ogr2ogr -f 'ESRI Shapefile' -where "STATE = '`echo $* | tr a-z A-Z`'" $@ $<
 
+# For all states:
+# - convert shp/us/states.shp into TopoJSON
+# - give them recognizable state name ids ("Alaska") instead of FIPS codes
+topo/us-states.json: shp/us/states.shp
+	mkdir -p $(dir $@) && $(TOPOJSON) --simplify-proportion=.2 --id-property=STATE -p STATE=name,STATE_FIPS=fips -- $^ > $@
+
 # For individual states:
 # - remove duplicate state geometries (e.g., Great Lakes)
 topo/%-states.json: shp/%/states.shp
