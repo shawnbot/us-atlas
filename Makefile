@@ -630,6 +630,7 @@ topo/us-counties-10m-ungrouped.json: shp/us/counties.shp
 	mkdir -p $(dir $@)
 	node_modules/.bin/topojson \
 		-o $@ \
+		--properties \
 		--no-pre-quantization \
 		--post-quantization=1e6 \
 		--simplify=7e-7 \
@@ -640,12 +641,14 @@ topo/us-counties-10m-ungrouped.json: shp/us/counties.shp
 topo/us-%-10m.json: topo/us-%-10m-ungrouped.json
 	node_modules/.bin/topojson-group \
 		-o $@ \
+		--properties \
 		-- topo/us-$*-10m-ungrouped.json
 
 # Merge counties into states.
 topo/us-states-10m.json: topo/us-counties-10m.json
 	node_modules/.bin/topojson-merge \
 		-o $@ \
+		--properties \
 		--in-object=counties \
 		--out-object=states \
 		--key='d.id / 1000 | 0' \
@@ -655,7 +658,32 @@ topo/us-states-10m.json: topo/us-counties-10m.json
 topo/us-10m.json: topo/us-states-10m.json
 	node_modules/.bin/topojson-merge \
 		-o $@ \
+		--properties \
 		--in-object=states \
 		--out-object=land \
 		--no-key \
 		-- topo/us-states-10m.json
+
+topo/us-counties.json: topo/us-counties-10m.json
+	node_modules/.bin/topojson \
+		-o $@ \
+		-p state=STATE \
+		-p county=COUNTY \
+		-p FIPS=FIPS \
+		--out-object=counties \
+		-- $<
+
+topo/us-states.json: shp/us/states.shp
+	node_modules/.bin/topojson \
+		-o $@ \
+		-p state=STATE \
+		-p FIPS=STATE_FIPS \
+		--out-object=states \
+		-- $<
+
+topo/us.json: topo/us-counties.json topo/us-states.json
+	node_modules/.bin/topojson \
+		-o $@ \
+		--properties \
+		--simplify 1e-10 \
+		-- $^
